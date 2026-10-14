@@ -1,0 +1,33 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    # Les tests tournent contre un vrai PostgreSQL, comme en production
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: poke
+          POSTGRES_PASSWORD: poke
+          POSTGRES_DB: dresseurs
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U poke -d dresseurs"
+          --health-interval 3s --health-retries 10
+    env:
+      POSTGRES_HOST: localhost
+      JWT_SECRET: ci-secret
+      DJANGO_SECRET_KEY: ci-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python manage.py test -v 2
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t poketeam-dresseurs .
